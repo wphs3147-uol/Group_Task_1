@@ -1,8 +1,8 @@
 import os
 import requests
+from datetime import datetime
 
-def import_data():
-    url = "https://earthquake.usgs.gov/fdsnws/event/1/query?format=csv&starttime=2023-01-01&endtime=2023-01-02"
+def import_data(url):
     file_path = "data/dataset_M1.txt"
     
     if not os.path.exists("data"):
@@ -24,18 +24,22 @@ def clean_data(data_text_list):
     output_path = "output/cleaned_data_M1.txt"
     cleaned_lines = []
     
-    for line in data_text_list:
-        words = line.split(",")
-        for i in range(len(words)):
-            word = words[i]
-            if "/" in word or "-" in word:
-                date_parts = word.replace("T", " ").replace("/", "-").split("-")
-                if len(date_parts) >= 3:
-                    if len(date_parts[0]) == 4:
-                        words[i] = date_parts[2] + "-" + date_parts[1] + "-" + date_parts[0]
-                    elif len(date_parts[2]) == 4:
-                        words[i] = date_parts[0] + "-" + date_parts[1] + "-" + date_parts[2]
-        cleaned_lines.append(",".join(words))
+    for i, line in enumerate(data_text_list):
+        if i == 0:
+            cleaned_lines.append(line)
+            continue
+
+        words = line.strip().split(",")
+        for j in range(len(words)):
+            word = words[j]
+            try:
+                if "T" in word:
+                    dt = datetime.strptime(word, "%Y-%m-%dT%H:%M:%S.%fZ")
+                    words[j] = dt.strftime("%d-%m-%Y %H:%M:%S")
+            except:
+                continue
+        
+        cleaned_lines.append(",".join(words) + "\n")
     
     with open(output_path, "w") as file:
         file.writelines(cleaned_lines)
@@ -43,6 +47,7 @@ def clean_data(data_text_list):
     return cleaned_lines
 
 if __name__ == "__main__":
-    data = import_data()
+    url = "https://earthquake.usgs.gov/fdsnws/event/1/query?format=csv&starttime=2023-01-01&endtime=2023-01-02"
+    data = import_data(url)
     cleaned_data = clean_data(data)
     print("Data cleaning completed.")
